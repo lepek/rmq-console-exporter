@@ -22,7 +22,7 @@ func NewExecutor(command string, arguments []string, outputBuffer int) *Executor
 		Arguments: arguments,
 		OutputCh: make(chan string, outputBuffer),
 		OutputBuffer: outputBuffer,
-		EndExecutionCh: make(chan struct{}),
+		EndExecutionCh: make(chan struct{}, 1),
 	}
 }
 

@@ -1,31 +1,46 @@
 package collectors
 
+import (
+	"errors"
+)
+
 type Metric struct {
-	name	string
-	value	float64
-	labels	map[string]string
+	Value		float64
+	LabelPairs	map[string]string
 }
 
-func NewMetric(name string, value float64, labels map[string]string) *Metric {
-	return &Metric{
-		name: name,
-		value: value,
-		labels: labels,
+type Metrics struct {
+	MetricPairs	map[string]Metric
+}
+
+func NewMetrics() *Metrics {
+	return &Metrics{
+		MetricPairs: make(map[string]Metric),
 	}
 }
 
-func (m *Metric) GetField() string {
-	return m.name
+func (m *Metrics) AddMetric(name string, value float64, labelPairs map[string]string) {
+	m.MetricPairs[name] = Metric{
+		Value: value,
+		LabelPairs: labelPairs,
+	}
 }
 
-func (m *Metric) GetName() string {
-	return m.name
+func (m *Metrics) GetMetricValue(name string) (float64, error) {
+	me, err := m.getMetric(name)
+	if err != nil { return 0.0, err }
+	return me.Value, nil
 }
 
-func (m *Metric) GetValue() float64 {
-	return m.value
+func (m *Metrics) GetLabels(name string) (map[string]string, error) {
+	me, err := m.getMetric(name)
+	if err != nil { return nil, err }
+	return me.LabelPairs, nil
 }
 
-func (m *Metric) GetLabels() map[string]string {
-	return m.labels
+func (m *Metrics) getMetric(name string) (Metric, error) {
+	if me, found := m.MetricPairs[name]; found {
+		return me, nil
+	}
+	return Metric{}, errors.New("metric not found")
 }
