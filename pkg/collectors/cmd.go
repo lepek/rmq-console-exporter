@@ -3,6 +3,7 @@ package collectors
 import (
 	"context"
 	"fmt"
+	"github.com/prometheus/common/log"
 	"golang.org/x/sync/errgroup"
 	"time"
 )
@@ -22,6 +23,7 @@ func NewCmdCollector(parser ICmdParser, timeoutMs int) *CmdCollector {
 }
 
 func (c *CmdCollector) Collect() ([]IMetrics, error) {
+	log.Info("Starting collection of metrics from console")
 	ctxTimeout, cancel := context.WithTimeout(context.Background(), time.Duration(c.TimeoutMs) * time.Millisecond)
 	g, ctxError := errgroup.WithContext(ctxTimeout)
 	defer cancel()
@@ -29,6 +31,11 @@ func (c *CmdCollector) Collect() ([]IMetrics, error) {
 	var metrics []IMetrics
 
 	g.Go(func() error {
+		log.Info("Starting line listener")
+		defer func() {
+			log.Info("Shutting down line listener")
+			cancel()
+		}()
 		for {
 			select {
 			case line:= <- c.CmdQueueExecutor.OutputCh:
@@ -38,15 +45,24 @@ func (c *CmdCollector) Collect() ([]IMetrics, error) {
 			case <-c.CmdQueueExecutor.EndExecutionCh:
 				return nil
 			case <-ctxTimeout.Done():
+				metrics = nil
 				return fmt.Errorf("executor timeout while running [%v %v]", c.CmdQueueExecutor.Command, c.CmdQueueExecutor.Arguments)
 			case <-ctxError.Done():
+				metrics = nil
 				return ctxError.Err()
 			}
 		}
 	})
 
 	g.Go(func() error {
-		if err := c.CmdQueueExecutor.Execute(); err != nil { return err }
+		log.Info("Starting command executor")
+		defer func() {
+			log.Info("Shuting down line command executor")
+		}()
+		if err := c.CmdQueueExecutor.Execute(ctxTimeout); err != nil {
+			log.Errorf("Error while executing command: %v", err)
+			return err
+		}
 		return nil
 	})
 

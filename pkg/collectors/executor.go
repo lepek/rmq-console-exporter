@@ -3,9 +3,14 @@ package collectors
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
+	"github.com/gofrs/flock"
+	"github.com/prometheus/common/log"
+	"math/rand"
 	"os/exec"
 	"sync"
+	"time"
 )
 
 type Executor struct {
@@ -26,8 +31,16 @@ func NewExecutor(command string, arguments []string, outputBuffer int) *Executor
 	}
 }
 
-func (e *Executor) Execute() error {
-	cmd := exec.Command(e.Command, e.Arguments...)
+func (e *Executor) Execute(ctx context.Context) error {
+	rand.Seed(time.Now().UnixNano())
+	id := rand.Intn(100000)
+	log.Infof("Executor started with ID %d", id)
+
+	defer func() {
+		log.Infof("Executed finished with ID %d", id)
+	}()
+
+	cmd := exec.CommandContext(ctx, e.Command, e.Arguments...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 

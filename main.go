@@ -11,10 +11,11 @@ import (
 func main() {
 	port := flag.Int("port", 2112, "Port to expose metrics")
 	prefix := flag.String("prefix", "rmq_", "Metrics prefix")
+	timeoutMs := flag.Int("timeout", 30000, "Timeout[Ms] for each collector")
 	flag.Parse()
 
 	var rmqCollectors []collectors.ICollector
-	queueCollector := collectors.NewCmdCollector(parsers.NewQueueParser(), 10000)
+	queueCollector := collectors.NewCmdCollector(parsers.NewQueueParser(), *timeoutMs)
 	rmqCollectors = append(rmqCollectors, queueCollector)
 
 	exporter := exporters.NewPrometheusExporter(*prefix, *port, rmqCollectors)
