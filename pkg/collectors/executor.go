@@ -1,34 +1,24 @@
 package collectors
 
 import (
-	"bufio"
-	"bytes"
 	"context"
+	"errors"
 	"fmt"
-	"github.com/gofrs/flock"
+	"github.com/go-cmd/cmd"
 	"github.com/prometheus/common/log"
 	"math/rand"
-	"os/exec"
-	"sync"
 	"time"
 )
 
 type Executor struct {
-	Command			string
-	Arguments		[]string
-	OutputCh		chan string
-	OutputBuffer	int
-	EndExecutionCh	chan struct{}
+	command			string
+	arguments		[]string
+	outputCh		chan string
+	endExecutionCh	chan struct{}
 }
 
-func NewExecutor(command string, arguments []string, outputBuffer int) *Executor {
-	return &Executor{
-		Command: command,
-		Arguments: arguments,
-		OutputCh: make(chan string, outputBuffer),
-		OutputBuffer: outputBuffer,
-		EndExecutionCh: make(chan struct{}, 1),
-	}
+func (e *Executor) Output() <-chan string {
+	return e.outputCh
 }
 
 func (e *Executor) Execute(ctx context.Context) error {
@@ -37,43 +27,26 @@ func (e *Executor) Execute(ctx context.Context) error {
 	log.Infof("Executor started with ID %d", id)
 
 	defer func() {
+		close(e.outputCh)
 		log.Infof("Executed finished with ID %d", id)
 	}()
 
-	cmd := exec.CommandContext(ctx, e.Command, e.Arguments...)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-
-	output, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("%v - Command Execute: cmd.StdoutPipe() failed: %s\n", err, string(stderr.Bytes()))
-	}
-
-	scanner := bufio.NewScanner(output)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for scanner.Scan() {
-			e.OutputCh <- scanner.Text()
+	options := cmd.Options{Streaming: true}
+	cmd := cmd.NewCmdOptions(options, e.command, e.arguments...)
+	for {
+		select {
+		case finalStatus := <-cmd.Start():
+			fmt.Println(finalStatus)
+			return nil
+		case outputLine := <-cmd.Stdout:
+			e.outputCh <- outputLine
+		case outputErr := <-cmd.Stderr:
+			fmt.Println(outputErr)
+			cmd.Stop()
+			return errors.New(outputErr)
+		case <-ctx.Done():
+			cmd.Stop()
+			return fmt.Errorf("executor timeout or parser error while running [%v %v]", e.command, e.arguments)
 		}
-	}()
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("%v - Command Execute: cmd.Start(): %v", err, string(stderr.Bytes()))
 	}
-
-	wg.Wait()
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("%v - Command Execute: cmd.Wait(): %v", err, string(stderr.Bytes()))
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("%v - Command Execute: scan process output error: %s", err, string(stderr.Bytes()))
-	}
-
-	e.EndExecutionCh <-struct{}{}
-	return nil
 }

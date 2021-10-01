@@ -7,14 +7,21 @@ import (
 	"github.com/prometheus/common/log"
 	"github.com/tevino/abool"
 	"net/http"
-	"rmq-console-exporter/pkg/collectors"
 	"strconv"
 )
+type IMetrics interface {
+	GetMetricValue(name string) (float64, error)
+	GetLabels(name string) (map[string]string, error)
+}
+
+type ICollector interface {
+	Collect() ([]IMetrics, error)
+}
 
 var (
 	/*
 	 *  Since the collection operation is time very consuming,
-	 *  we will allow only one collector running at any time to avoid to avoid multiple errors:
+	 *  we will allow only one collector running at any time to avoid multiple errors:
 	 *  - Multiple threads sending the same metric will trigger a duplicated metric error on Prometheus library
 	 *  - Multiple threads hammering the RMQ server for metrics
 	 *  - One scrape starting when the previous one hasn't finished yet
@@ -25,11 +32,11 @@ var (
 type PrometheusExporter struct {
 	MetricsDesc		map[string]*prometheus.Desc
 	Port			int
-	RMQCollector	[]collectors.ICollector
+	RMQCollector	[]ICollector
 	MetricLabels	[]string
 }
 
-func NewPrometheusExporter(prefix string, port int, collector []collectors.ICollector) *PrometheusExporter {
+func NewPrometheusExporter(prefix string, port int, collector []ICollector) *PrometheusExporter {
 	labels := []string{"queue", "state"}
 	return &PrometheusExporter{
 		MetricsDesc: createPrometheusMetrics(prefix, labels),
@@ -67,7 +74,9 @@ func (p *PrometheusExporter) Collect(ch chan<- prometheus.Metric) {
 
 	log.Info("Starting metrics collection")
 	for _, collector := range p.RMQCollector {
-		metrics, err := collector.Collect()
+		var metrics []IMetrics
+		var err error
+		metrics, err = collector.Collect()
 		if err != nil {
 			log.Errorf("Metrics collection has failed for collector %v: %v", collector, err)
 			continue
