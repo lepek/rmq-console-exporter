@@ -55,6 +55,17 @@ rmq_messages_unacknowledged{queue="10_128_4_241:5672.sage-xds-service.35k_0204_k
 rmq_command_runtime_seconds{command_executed="rabbitmqctl list_queues --formatter json name state messages_ready message_bytes_ready messages_unacknowledged message_bytes_unacknowledged memory consumers consumer_utilisation head_message_timestamp"} 0.5431952
 ```
 
+## Benchmarks
+
+### Queue metrics / tabular parser / RabbitMQ 3.6:
+| Queues | Time[s] |
+|--------|---------|
+| 219990 | 27.09 |
+| 219990 | 27.74 |
+| 219990 | 28.14 |
+| 219990 | 29.42 |
+| 219990 | 28.47 |
+
 ## Exposed Metrics
 
 ### Queue Metrics
