@@ -6,7 +6,7 @@ func NewExecutorFactory() *ExecutorFactory {
 	return &ExecutorFactory{}
 }
 
-func (f *ExecutorFactory) NewExecutor(command string, arguments []string, outputBuffer int) *Executor {
+func (f *ExecutorFactory) NewExecutor(command string, arguments []string, outputBuffer int) IExecutor {
 	return &Executor{
 		command: command,
 		arguments: arguments,

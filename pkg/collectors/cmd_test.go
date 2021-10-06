@@ -104,3 +104,80 @@ func TestCollectFail(t *testing.T) {
 	assert.NotEqual(t, nil, err)
 	assert.Equal(t, 0, len(results))
 }
+
+//********************************************************************************************************************//
+
+type TestJsonExecutor struct {
+	outputCh		chan string
+	endExecutionCh	chan struct{}
+}
+
+func (e *TestJsonExecutor) Output() <-chan string {
+	return e.outputCh
+}
+
+func (e *TestJsonExecutor) Execute(ctx context.Context) error {
+	defer close(e.outputCh)
+
+	output := []string{
+		`[`,
+		`{"name":"10_128_4_241:5672.sage-xds-service.super_after157k_haneeshp.LATEST.perf","state":"running","messages_ready":0,"message_bytes_ready":0,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":55692,"consumers":1,"consumer_utilisation":1.0,"head_message_timestamp":""}`,
+		`,{"name":"10_128_4_241:5672.sage-xds-service.performance_v20210920_0921_omsperf.LATEST.perf","state":"running","messages_ready":0,"message_bytes_ready":0,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":55692,"consumers":1,"consumer_utilisation":1.0,"head_message_timestamp":""}`,
+		`,{"name":"10_128_4_241:5672.sage-xds-service.35k_sp_20210924_7.LATEST.perf","state":"running","messages_ready":0,"message_bytes_ready":0,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":55692,"consumers":1,"consumer_utilisation":1.0,"head_message_timestamp":""}`,
+		`,{"name":"10_128_4_241:5672.sage-xds-service.super_0110_gpcc.LATEST.perf","state":"running","messages_ready":0,"message_bytes_ready":0,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":55556,"consumers":0,"consumer_utilisation":"","head_message_timestamp":""}`,
+		`,{"name":"10_128_4_242:5672.sage-xds-service.wfs_0617_jl.LATEST.perf","state":"running","messages_ready":0,"message_bytes_ready":0,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":55756,"consumers":1,"consumer_utilisation":1.0,"head_message_timestamp":1630920836}`,
+		`]`,
+		`{"command_executed":"rabbitmqctl list_queues --formatter json name state messages_ready","command_runtime":0.5655179}`,
+	}
+	currLine := 0
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			e.outputCh <- output[currLine]
+			currLine++
+			if currLine == len(output) {
+				return nil
+			}
+		}
+	}
+}
+
+type TestExecutorJsonFactory struct {}
+
+func NewTestExecutorJsonFactory() IExecutorFactory {
+	return &TestExecutorJsonFactory{}
+}
+
+func (f *TestExecutorJsonFactory) NewExecutor(command string, arguments []string, outputBuffer int) IExecutor {
+	return &TestJsonExecutor{
+		outputCh: make(chan string, 100),
+		endExecutionCh: make(chan struct{}, 1),
+	}
+}
+
+//============== TEST ================ //
+func TestJsonCollectOk(t *testing.T) {
+	console := NewCmdCollector(NewQueueJsonParser(), NewTestExecutorJsonFactory(), 1000000, 1000000)
+	results, err := console.Collect()
+
+	assert.Nil(t, err)
+	assert.Equal(t, 6, len(results))
+
+	value, err := results[0].GetMetricValue("consumer_utilisation")
+	assert.Nil(t, err)
+	assert.Equal(t, 1.0, value)
+
+	value, err = results[4].GetMetricValue("head_message_timestamp")
+	assert.Nil(t, err)
+	assert.Equal(t, float64(1630920836), value)
+
+	value, err = results[5].GetMetricValue("command_runtime")
+	assert.Nil(t, err)
+	assert.Equal(t, 0.5655179, value)
+	labels, err := results[5].GetLabels("command_runtime")
+	assert.Nil(t, err)
+	assert.Equal(t, `rabbitmqctl list_queues --formatter json name state messages_ready`, labels["command_executed"])
+}

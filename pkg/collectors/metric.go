@@ -26,19 +26,19 @@ func (m *Metrics) AddMetric(name string, value float64, labelPairs map[string]st
 	}
 }
 
-func (m *Metrics) GetMetricValue(name string) (float64, error) {
+func (m Metrics) GetMetricValue(name string) (float64, error) {
 	me, err := m.getMetric(name)
 	if err != nil { return 0.0, err }
 	return me.Value, nil
 }
 
-func (m *Metrics) GetLabels(name string) (map[string]string, error) {
+func (m Metrics) GetLabels(name string) (map[string]string, error) {
 	me, err := m.getMetric(name)
 	if err != nil { return nil, err }
 	return me.LabelPairs, nil
 }
 
-func (m *Metrics) getMetric(name string) (Metric, error) {
+func (m Metrics) getMetric(name string) (Metric, error) {
 	if me, found := m.MetricPairs[name]; found {
 		return me, nil
 	}

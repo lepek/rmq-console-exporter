@@ -2,6 +2,7 @@ package collectors
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 )
 
@@ -15,7 +16,8 @@ func NewQueueJsonParser() *QueueJsonParser {
 		Cmd: "rabbitmqctl",
 		Arguments: []string{
 			"list_queues",
-			"--formatter json",
+			"--formatter",
+			"json",
 			"name",
 			"state",
 			"messages_ready",
@@ -45,6 +47,17 @@ func (p *QueueJsonParser) Parse(line string) (*Metrics, error) {
 		return nil, NewNonFatalError(err)
 	}
 
+	// Not super elegant to check to identify a valid queue metric
+	_, okQueue := jsonMetrics["name"]
+	_, okState := jsonMetrics["state"]
+
+	if !okQueue || !okState {
+		return parseStatus(jsonMetrics)
+	}
+	return parseQueue(jsonMetrics)
+}
+
+func parseQueue(jsonMetrics map[string]interface{}) (*Metrics, error) {
 	queueMetrics := NewMetrics()
 	queue, state := jsonMetrics["name"].(string), jsonMetrics["state"].(string)
 	for name, value := range jsonMetrics {
@@ -55,4 +68,16 @@ func (p *QueueJsonParser) Parse(line string) (*Metrics, error) {
 	}
 
 	return queueMetrics, nil
+}
+
+func parseStatus(jsonMetrics map[string]interface{}) (*Metrics, error) {
+	commandRuntime, okRuntime := jsonMetrics["command_runtime"]
+	commandExecuted, okExecuted := jsonMetrics["command_executed"]
+	if okRuntime && okExecuted {
+		statusMetrics := NewMetrics()
+		labels := map[string]string{"command_executed": commandExecuted.(string)}
+		statusMetrics.AddMetric("command_runtime", commandRuntime.(float64), labels)
+		return statusMetrics, nil
+	}
+	return nil, NewNonFatalError(errors.New("unknown JSON line"))
 }

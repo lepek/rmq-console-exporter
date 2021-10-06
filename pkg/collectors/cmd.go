@@ -3,8 +3,9 @@ package collectors
 import (
 	"context"
 	"errors"
-	"github.com/prometheus/common/log"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"rmq-console-exporter/pkg/exporters"
 	"time"
 )
 
@@ -53,7 +54,7 @@ func NewCmdCollector(parser ICmdParser, executorFactory IExecutorFactory, timeou
 	}
 }
 
-func (c *CmdCollector) Collect() ([]Metrics, error) {
+func (c *CmdCollector) Collect() ([]exporters.IMetrics, error) {
 	c.ActiveExecutor = c.ExecutorFactory.NewExecutor(c.Parser.GetCmd(), c.Parser.GetArguments(), c.OutputBuffer)
 	defer c.closeActiveExecutor()
 
@@ -63,7 +64,7 @@ func (c *CmdCollector) Collect() ([]Metrics, error) {
 
 	defer cancel()
 
-	var metrics []Metrics
+	var metrics []exporters.IMetrics
 
 	// Parsing command output
 	g.Go(func() error {
@@ -80,7 +81,7 @@ func (c *CmdCollector) Collect() ([]Metrics, error) {
 					log.Info("Command execution finished")
 					return nil
 				}
-				log.Info(line)
+				log.Debug(line)
 				metric, err := c.Parser.Parse(line)
 				if err != nil && !errors.As(err, &nonFatalError) { return err }
 				if metric != nil { metrics = append(metrics, *metric) }
@@ -94,7 +95,7 @@ func (c *CmdCollector) Collect() ([]Metrics, error) {
 	g.Go(func() error {
 		log.Info("Starting command executor")
 		defer func() {
-			log.Info("Shutting down line command executor")
+			log.Info("Shutting down command executor")
 		}()
 		if err := c.ActiveExecutor.Execute(ctxTimeout); err != nil {
 			log.Errorf("Error while executing command: %v", err)

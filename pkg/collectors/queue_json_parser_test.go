@@ -40,6 +40,15 @@ func TestQueueJsonParserOk(t *testing.T) {
 	checkLabels(t, metrics, "head_message_timestamp", expectedLabels)
 }
 
+func TestStatusJsonParser(t *testing.T) {
+	parser := NewQueueJsonParser()
+	line := `{"command_executed":"rabbitmqctl list_queues --formatter json name","command_runtime":0.5655179}`
+	metrics, err := parser.Parse(line)
+	assert.Equal(t, nil, err)
+	checkValue(t, metrics, "command_runtime", 0.5655179)
+	checkLabels(t, metrics, "command_runtime", map[string]string{"command_executed":"rabbitmqctl list_queues --formatter json name"})
+}
+
 func TestQueueJsonParserTrailingOk(t *testing.T) {
 	var parser ICmdParser
 	parser = NewQueueJsonParser()

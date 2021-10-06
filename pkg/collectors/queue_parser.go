@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/oriser/regroup"
 	"strconv"
+	"strings"
 )
 
 type QueueParser struct {
@@ -17,7 +18,6 @@ func NewQueueParser() *QueueParser {
 		Cmd: "rabbitmqctl",
 		Arguments: []string{
 			"list_queues",
-			"--formatter json",
 			"name",
 			"state",
 			"messages_ready",
@@ -53,6 +53,7 @@ func (p *QueueParser) GetArguments() []string {
 }
 
 func (p *QueueParser) Parse(line string) (*Metrics, error) {
+	strings.TrimSpace(line)
 	matches, err := p.Parser.Groups(line)
 	if err != nil {
 		var e *regroup.NoMatchFoundError

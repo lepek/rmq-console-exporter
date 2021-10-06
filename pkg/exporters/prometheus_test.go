@@ -6,7 +6,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"rmq-console-exporter/pkg/collectors"
 	"testing"
 )
 
@@ -20,23 +19,38 @@ var (
 	)
 )
 
+type TestMetrics struct {}
+
+func (m TestMetrics) GetMetricValue(name string) (float64, error) {
+	if name != "memory" {
+		return 0.0, errors.New("metric not found")
+	}
+	return 1.5, nil
+}
+
+func (m TestMetrics) GetLabels(name string) (map[string]string, error) {
+	if name != "memory" {
+		return nil, errors.New("metric not found")
+	}
+	return map[string]string{"queue": "q33", "state":"running"}, nil
+}
+
 type MockedCollector struct{
 	mock.Mock
 }
 
-func (c *MockedCollector) Collect() ([]collectors.IMetrics, error) {
+func (c *MockedCollector) Collect() ([]IMetrics, error) {
 	args := c.Called()
-	metric := collectors.NewMetrics()
-	metric.AddMetric("Memory", 1.5, map[string]string{"queue": "q33"})
-	return []collectors.IMetrics{metric}, args.Error(0)
+	return []IMetrics{&TestMetrics{}}, args.Error(0)
 }
 
 func TestExporterOk(t *testing.T) {
 	testCollector := new(MockedCollector)
-	exporter := buildTestExporter([]collectors.ICollector{testCollector})
+	exporter := buildTestExporter([]ICollector{testCollector})
 	testCollector.On("Collect").Return(nil)
-	ch := make(chan prometheus.Metric, 1)
+	ch := make(chan prometheus.Metric, 10)
 	exporter.Collect(ch)
+	assert.Equal(t, 1, len(ch))
 	metric := <- ch
 	assert.Equal(t, expected, metric.Desc().String())
 }
@@ -44,10 +58,10 @@ func TestExporterOk(t *testing.T) {
 func TestExporterMultipleCollectorsOneFailing(t *testing.T) {
 	testCollectorOk := new(MockedCollector)
 	testCollectorFail := new(MockedCollector)
-	exporter := buildTestExporter([]collectors.ICollector{testCollectorFail, testCollectorOk})
+	exporter := buildTestExporter([]ICollector{testCollectorFail, testCollectorOk})
 	testCollectorOk.On("Collect").Return(nil)
 	testCollectorFail.On("Collect").Return(errors.New("some error"))
-	ch := make(chan prometheus.Metric, 2)
+	ch := make(chan prometheus.Metric, 10)
 	exporter.Collect(ch)
 	assert.Equal(t, 1, len(ch))
 
@@ -58,10 +72,10 @@ func TestExporterMultipleCollectorsOneFailing(t *testing.T) {
 func TestExporterMultipleCollectorsOk(t *testing.T) {
 	testCollectorOk1 := new(MockedCollector)
 	testCollectorOk2 := new(MockedCollector)
-	exporter := buildTestExporter([]collectors.ICollector{testCollectorOk1, testCollectorOk2})
+	exporter := buildTestExporter([]ICollector{testCollectorOk1, testCollectorOk2})
 	testCollectorOk1.On("Collect").Return(nil)
 	testCollectorOk2.On("Collect").Return(nil)
-	ch := make(chan prometheus.Metric, 2)
+	ch := make(chan prometheus.Metric, 10)
 	exporter.Collect(ch)
 	assert.Equal(t, 2, len(ch))
 	metric := <- ch
@@ -71,16 +85,14 @@ func TestExporterMultipleCollectorsOk(t *testing.T) {
 func TestExporterMultipleCollectorsFailing(t *testing.T) {
 	testCollectorFail1 := new(MockedCollector)
 	testCollectorFail2 := new(MockedCollector)
-	exporter := buildTestExporter([]collectors.ICollector{testCollectorFail1, testCollectorFail2})
+	exporter := buildTestExporter([]ICollector{testCollectorFail1, testCollectorFail2})
 	testCollectorFail1.On("Collect").Return(errors.New("some error"))
 	testCollectorFail2.On("Collect").Return(errors.New("some error"))
-	ch := make(chan prometheus.Metric, 2)
+	ch := make(chan prometheus.Metric, 10)
 	exporter.Collect(ch)
 	assert.Equal(t, 0, len(ch))
 }
 
-func buildTestExporter(c []collectors.ICollector) *PrometheusExporter {
+func buildTestExporter(c []ICollector) *PrometheusExporter {
 	return NewPrometheusExporter("prefix_", 9999, c)
 }
-
-
