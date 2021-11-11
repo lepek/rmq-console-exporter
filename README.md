@@ -23,7 +23,7 @@ Usage of ./rmq-console-exporter:
   -queue_parser string
     	Queue Parser to use: json or tabular (default "json")
   -timeout int
-    	Timeout[Ms] for each collector (default 30000)
+    	Timeout[Ms] for each collector (default 60000)
 ```
 
 ## Sample Output
@@ -102,6 +102,14 @@ rmq_command_runtime_seconds{command_executed="rabbitmqctl list_queues --formatte
   It also provides an additional metric regarding the collection itself.
   Since the collection can take a long time, to avoid hammering the RMQ server, 
   the agent prevents concurrent runs of the same collection.
-  It has been tested on RMQ Server 3.6, 3.7, 3.8 and 3.9.  
+  It has been tested on RMQ Server 3.6, 3.7, 3.8 and 3.9.
+
+## Development
+
+### Style checks
+```bash
+$ go get -u github.com/mgechev/revive
+$ revive -config config_revive.toml -formatter friendly ./...
+```
 
 

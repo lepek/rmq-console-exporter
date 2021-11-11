@@ -3,7 +3,6 @@ package collectors
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/go-cmd/cmd"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +42,7 @@ func (e *Executor) Execute(ctx context.Context) error {
 		// Command has finished and the final status of the execution is received
 		case finalStatus := <-cmd.Start():
 			if finalStatus.Error == nil && finalStatus.Exit == 0 && finalStatus.Complete {
-				if status, err := e.statusToJson(finalStatus); err == nil {
+				if status, err := e.statusToJSON(finalStatus); err == nil {
 					e.outputCh <- status
 				}
 				log.Infof( "Command end streaming sucessfully: %v", finalStatus)
@@ -58,8 +57,9 @@ func (e *Executor) Execute(ctx context.Context) error {
 		case outputErr, ok := <-cmd.Stderr:
 			if ok {
 				log.Errorf("Command returned an error: %v", outputErr)
-				cmd.Stop()
-				return errors.New(outputErr)
+				// Don't kill the command
+				// cmd.Stop()
+				// return errors.New(outputErr)
 			}
 		// Context pass to the execution is cancel for any reason (timeout or external errors)
 		case <-ctx.Done():
@@ -69,7 +69,7 @@ func (e *Executor) Execute(ctx context.Context) error {
 	}
 }
 
-func (e *Executor) statusToJson(status cmd.Status) (string, error) {
+func (e *Executor) statusToJSON(status cmd.Status) (string, error) {
 	statusMap := map[string]interface{}{
 		"command_runtime": status.Runtime,
 		"command_executed": fmt.Sprintf("%s %s", e.command, strings.Join(e.arguments, " ")),

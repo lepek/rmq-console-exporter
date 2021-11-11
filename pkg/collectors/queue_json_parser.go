@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-type QueueJsonParser struct {
+type QueueJSONParser struct {
 	Cmd			string
 	Arguments	[]string
 }
 
-func NewQueueJsonParser() *QueueJsonParser {
-	return &QueueJsonParser{
+func NewQueueJSONParser() *QueueJSONParser {
+	return &QueueJSONParser{
 		Cmd: "rabbitmqctl",
 		Arguments: []string{
 			"list_queues",
@@ -32,15 +32,15 @@ func NewQueueJsonParser() *QueueJsonParser {
 	}
 }
 
-func (p *QueueJsonParser) GetCmd() string {
+func (p *QueueJSONParser) GetCmd() string {
 	return p.Cmd
 }
 
-func (p *QueueJsonParser) GetArguments() []string {
+func (p *QueueJSONParser) GetArguments() []string {
 	return p.Arguments
 }
 
-func (p *QueueJsonParser) Parse(line string) (*Metrics, error) {
+func (p *QueueJSONParser) Parse(line string) (*Metrics, error) {
 	var jsonMetrics map[string]interface{}
 	err := json.Unmarshal([]byte(strings.Trim(line,",")), &jsonMetrics)
 	if err != nil {

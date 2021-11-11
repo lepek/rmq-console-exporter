@@ -107,16 +107,16 @@ func TestCollectFail(t *testing.T) {
 
 //********************************************************************************************************************//
 
-type TestJsonExecutor struct {
+type TestJSONExecutor struct {
 	outputCh		chan string
 	endExecutionCh	chan struct{}
 }
 
-func (e *TestJsonExecutor) Output() <-chan string {
+func (e *TestJSONExecutor) Output() <-chan string {
 	return e.outputCh
 }
 
-func (e *TestJsonExecutor) Execute(ctx context.Context) error {
+func (e *TestJSONExecutor) Execute(ctx context.Context) error {
 	defer close(e.outputCh)
 
 	output := []string{
@@ -145,14 +145,14 @@ func (e *TestJsonExecutor) Execute(ctx context.Context) error {
 	}
 }
 
-type TestExecutorJsonFactory struct {}
+type TestExecutorJSONFactory struct {}
 
-func NewTestExecutorJsonFactory() IExecutorFactory {
-	return &TestExecutorJsonFactory{}
+func NewTestExecutorJSONFactory() IExecutorFactory {
+	return &TestExecutorJSONFactory{}
 }
 
-func (f *TestExecutorJsonFactory) NewExecutor(command string, arguments []string, outputBuffer int) IExecutor {
-	return &TestJsonExecutor{
+func (f *TestExecutorJSONFactory) NewExecutor(command string, arguments []string, outputBuffer int) IExecutor {
+	return &TestJSONExecutor{
 		outputCh: make(chan string, 100),
 		endExecutionCh: make(chan struct{}, 1),
 	}
@@ -160,7 +160,7 @@ func (f *TestExecutorJsonFactory) NewExecutor(command string, arguments []string
 
 //============== TEST ================ //
 func TestJsonCollectOk(t *testing.T) {
-	console := NewCmdCollector(NewQueueJsonParser(), NewTestExecutorJsonFactory(), 1000000, 1000000)
+	console := NewCmdCollector(NewQueueJSONParser(), NewTestExecutorJSONFactory(), 1000000, 1000000)
 	results, err := console.Collect()
 
 	assert.Nil(t, err)

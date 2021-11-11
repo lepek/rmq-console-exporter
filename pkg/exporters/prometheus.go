@@ -56,10 +56,7 @@ func (p *PrometheusExporter) Describe(ch chan<- *prometheus.Desc) {
 func (p *PrometheusExporter) Init() error {
 	prometheus.MustRegister(p)
 	http.Handle("/metrics", promhttp.Handler())
-	if err := http.ListenAndServe(fmt.Sprintf(":" + strconv.Itoa(p.Port)), nil); err != nil {
-		return err
-	}
-	return nil
+	return http.ListenAndServe(fmt.Sprintf(":" + strconv.Itoa(p.Port)), nil)
 }
 
 func (p *PrometheusExporter) Collect(ch chan<- prometheus.Metric) {

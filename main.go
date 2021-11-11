@@ -10,7 +10,7 @@ import (
 func main() {
 	port := flag.Int("port", 2112, "Port to expose metrics")
 	prefix := flag.String("prefix", "rmq_", "Metrics prefix")
-	timeoutMs := flag.Int("timeout", 30000, "Timeout[Ms] for each collector")
+	timeoutMs := flag.Int("timeout", 60000, "Timeout[Ms] for each collector")
 	outputBufferLines := flag.Int("output_buffer", 100000, "Output Buffer[lines]")
 	level := flag.String("log_level", "info", "Log Level: debug, info, error, etc")
 	qParser := flag.String("queue_parser", "json", "Queue Parser to use: json or tabular")
@@ -46,5 +46,5 @@ func queueParserFactory(strParser string) collectors.ICmdParser {
 		return collectors.NewQueueParser()
 	}
 
-	return collectors.NewQueueJsonParser()
+	return collectors.NewQueueJSONParser()
 }
