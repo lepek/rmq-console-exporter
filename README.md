@@ -12,6 +12,10 @@ When the `/metrics` endpoint is accessed a metric collection process starts:
 ```bash
 ./rmq-console-exporter --help                                                                                                                                          ✔
 Usage of ./rmq-console-exporter:
+  -config_file string
+    	Config file (use the flag -create_config to create one)
+  -create_config
+    	Lunch the tool to create a config file
   -log_level string
     	Log Level: debug, info, error, etc (default "info")
   -output_buffer int
@@ -23,7 +27,7 @@ Usage of ./rmq-console-exporter:
   -queue_parser string
     	Queue Parser to use: json or tabular (default "json")
   -timeout int
-    	Timeout[Ms] for each collector (default 60000)
+    	Timeout[Ms] for each collector (default 600000)
 ```
 
 ## Sample Output
@@ -96,6 +100,9 @@ rmq_command_runtime_seconds{command_executed="rabbitmqctl list_queues --formatte
 - `command_executed`: Full command executed with arguments.
 
 ## Changelog
+### 0.2
+- OMSDPM-5975: Filtering features using a config file: new flags `-create_config` and `config_file`
+
 ### 0.1
 - OMSDPM-5724: First release. It provides RabbitMQ queue metrics from the `rabbitmqctl` command output. 
   It can get the metrics from tabular output and from json output (using `--formatter json`).

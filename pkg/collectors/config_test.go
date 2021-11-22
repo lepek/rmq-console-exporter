@@ -15,7 +15,7 @@ func TestInit(t *testing.T) {
 	payload := []string{`^.*\.dev$`, `^.*\.super\..*$`}
 	WriteDummyConfig(configPath, payload)
 
-	config := NewConfig(configPath)
+	config, _ := NewConfig(configPath)
 	config.OnConfigChange(func(e fsnotify.Event) {
 		config.Init()
 	})
@@ -33,7 +33,7 @@ func TestInit(t *testing.T) {
 }
 
 func TestEmpty(t *testing.T) {
-	config := NewConfig("")
+	config, _ := NewConfig("")
 	assert.Equal(t, true, config.filterQueue("object_test.dev"))
 }
 
