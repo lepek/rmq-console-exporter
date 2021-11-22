@@ -113,6 +113,14 @@ rmq_command_runtime_seconds{command_executed="rabbitmqctl list_queues --formatte
 
 ## Development
 
+### Design docs
+https://confluence.workday.com/x/yu5hYg
+
+### Run tests
+```bash
+$ go test ./...
+```
+
 ### Style checks
 ```bash
 $ go get -u github.com/mgechev/revive
