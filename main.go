@@ -7,7 +7,7 @@ import (
 	"os"
 	"rmq-console-exporter/pkg/collectors"
 	"rmq-console-exporter/pkg/exporters"
-	utils "rmq-console-exporter/pkg/internal_utils"
+	utils "rmq-console-exporter/pkg/internalutils"
 )
 
 func main() {
