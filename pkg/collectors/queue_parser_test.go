@@ -6,7 +6,7 @@ import (
 )
 
 func TestQueueParserOkWithNoMessageTimestamp(t *testing.T) {
-	parser := NewQueueParser()
+	parser := NewQueueParser(&TrueFilterConfig{})
 	line := "q33	running	1	2	3	4	34664	5	0.1	"
 	metrics, err := parser.Parse(line)
 
@@ -43,7 +43,7 @@ func TestQueueParserOkWithNoMessageTimestamp(t *testing.T) {
 }
 
 func TestQueueParserMatchNotFound(t *testing.T) {
-	parser := NewQueueParser()
+	parser := NewQueueParser(&TrueFilterConfig{})
 	line := "some random string"
 	metrics, err := parser.Parse(line)
 	assert.IsType(t, &NonFatalError{}, err)

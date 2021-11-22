@@ -9,13 +9,15 @@ import (
 
 type QueueParser struct {
 	Cmd			string
+	Config		IConfig
 	Arguments	[]string
 	Parser		*regroup.ReGroup
 }
 
-func NewQueueParser() *QueueParser {
+func NewQueueParser(config IConfig) *QueueParser {
 	return &QueueParser{
 		Cmd: "rabbitmqctl",
+		Config: config,
 		Arguments: []string{
 			"list_queues",
 			"name",
@@ -60,8 +62,12 @@ func (p *QueueParser) Parse(line string) (*Metrics, error) {
 		if errors.As(err, &e) { return nil, NewNonFatalError(err) }
 		return nil, err
 	}
-	queueMetrics := NewMetrics()
 	queue, state := matches["name"], matches["state"]
+	// If it doesn't go through the filters then we ignore the queue metric
+	if !p.Config.filterQueue(queue) {
+		return nil, nil
+	}
+	queueMetrics := NewMetrics()
 	for name, value := range matches {
 		if name == "name" || name == "state" { continue }
 		fValue, err := strconv.ParseFloat(value, 64)

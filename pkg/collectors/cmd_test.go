@@ -58,7 +58,7 @@ func (f *TestExecutorFactory) NewExecutor(command string, arguments []string, ou
 
 //============== TEST ================ //
 func TestCollectOk(t *testing.T) {
-	console := NewCmdCollector(NewQueueParser(), NewTestExecutorFactory(), 1000000, 1000000)
+	console := NewCmdCollector(NewQueueParser(&TrueFilterConfig{}), NewTestExecutorFactory(), 1000000, 1000000)
 	results, err := console.Collect()
 
 	assert.Equal(t, nil, err)
@@ -160,7 +160,7 @@ func (f *TestExecutorJSONFactory) NewExecutor(command string, arguments []string
 
 //============== TEST ================ //
 func TestJsonCollectOk(t *testing.T) {
-	console := NewCmdCollector(NewQueueJSONParser(), NewTestExecutorJSONFactory(), 1000000, 1000000)
+	console := NewCmdCollector(NewQueueJSONParser(&TrueFilterConfig{}), NewTestExecutorJSONFactory(), 1000000, 1000000)
 	results, err := console.Collect()
 
 	assert.Nil(t, err)

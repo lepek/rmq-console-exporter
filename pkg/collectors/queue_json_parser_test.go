@@ -5,9 +5,19 @@ import (
 	"testing"
 )
 
+type TrueFilterConfig struct{}
+func (c *TrueFilterConfig) filterQueue(name string) bool {
+	return true
+}
+
+type FalseFilterConfig struct{}
+func (c *FalseFilterConfig) filterQueue(name string) bool {
+	return false
+}
+
 func TestQueueJsonParserOk(t *testing.T) {
 	var parser ICmdParser
-	parser = NewQueueJsonParser()
+	parser = NewQueueJSONParser(&TrueFilterConfig{})
 	line := `{"name":"delegate_encryption_test_3579441e-1f41-4455-90e4-04c3228f1305.tenant_3667d578-644d-4930-b965-4f7bd45ee537.dev","state":"running","messages_ready":1,"message_bytes_ready":288,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":34788,"consumers":6,"consumer_utilisation":"","head_message_timestamp":1630920836}`
 	metrics, err := parser.Parse(line)
 
@@ -41,7 +51,7 @@ func TestQueueJsonParserOk(t *testing.T) {
 }
 
 func TestStatusJsonParser(t *testing.T) {
-	parser := NewQueueJsonParser()
+	parser := NewQueueJSONParser(&TrueFilterConfig{})
 	line := `{"command_executed":"rabbitmqctl list_queues --formatter json name","command_runtime":0.5655179}`
 	metrics, err := parser.Parse(line)
 	assert.Equal(t, nil, err)
@@ -51,7 +61,7 @@ func TestStatusJsonParser(t *testing.T) {
 
 func TestQueueJsonParserTrailingOk(t *testing.T) {
 	var parser ICmdParser
-	parser = NewQueueJsonParser()
+	parser = NewQueueJSONParser(&TrueFilterConfig{})
 	line := `,{"name":"delegate_encryption_test_3579441e-1f41-4455-90e4-04c3228f1305.tenant_3667d578-644d-4930-b965-4f7bd45ee537.dev","state":"running","messages_ready":1,"message_bytes_ready":288,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":34788,"consumers":6,"consumer_utilisation":"","head_message_timestamp":1630920836}`
 	metrics, err := parser.Parse(line)
 
@@ -86,9 +96,19 @@ func TestQueueJsonParserTrailingOk(t *testing.T) {
 
 func TestQueueJsonParserMatchNotFound(t *testing.T) {
 	var parser ICmdParser
-	parser = NewQueueJsonParser()
+	parser = NewQueueJSONParser(&TrueFilterConfig{})
 	line := `[`
 	metrics, err := parser.Parse(line)
 	assert.IsType(t, &NonFatalError{}, err)
+	assert.Nil(t, metrics)
+}
+
+func TestQueueJsonParserFiltered(t *testing.T) {
+	var parser ICmdParser
+	parser = NewQueueJSONParser(&FalseFilterConfig{})
+	line := `{"name":"delegate_encryption_test_3579441e-1f41-4455-90e4-04c3228f1305.tenant_3667d578-644d-4930-b965-4f7bd45ee537.dev","state":"running","messages_ready":1,"message_bytes_ready":288,"messages_unacknowledged":0,"message_bytes_unacknowledged":0,"memory":34788,"consumers":6,"consumer_utilisation":"","head_message_timestamp":1630920836}`
+	metrics, err := parser.Parse(line)
+
+	assert.Nil(t, err)
 	assert.Nil(t, metrics)
 }

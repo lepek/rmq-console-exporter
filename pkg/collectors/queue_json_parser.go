@@ -6,13 +6,19 @@ import (
 	"strings"
 )
 
+type IConfig interface {
+	filterQueue(string) bool
+}
+
 type QueueJSONParser struct {
+	Config		IConfig
 	Cmd			string
 	Arguments	[]string
 }
 
-func NewQueueJSONParser() *QueueJSONParser {
+func NewQueueJSONParser(config IConfig) *QueueJSONParser {
 	return &QueueJSONParser{
+		Config: config,
 		Cmd: "rabbitmqctl",
 		Arguments: []string{
 			"list_queues",
@@ -54,12 +60,16 @@ func (p *QueueJSONParser) Parse(line string) (*Metrics, error) {
 	if !okQueue || !okState {
 		return parseStatus(jsonMetrics)
 	}
-	return parseQueue(jsonMetrics)
+	return p.parseQueue(jsonMetrics)
 }
 
-func parseQueue(jsonMetrics map[string]interface{}) (*Metrics, error) {
+func (p *QueueJSONParser) parseQueue(jsonMetrics map[string]interface{}) (*Metrics, error) {
 	queueMetrics := NewMetrics()
 	queue, state := jsonMetrics["name"].(string), jsonMetrics["state"].(string)
+	// If it doesn't go through the filters then we ignore the queue metric
+	if !p.Config.filterQueue(queue) {
+		return nil, nil
+	}
 	for name, value := range jsonMetrics {
 		if name == "name" || name == "state" { continue }
 		fValue, ok := value.(float64)
